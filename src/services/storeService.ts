@@ -48,8 +48,8 @@ export async function suggestStore(payload: Partial<AquaStore>) {
       phone: payload.phone,
       website: payload.website,
       schedule: payload.schedule,
-      rating: payload.rating ?? null,
-      verifiedBy: null,
+      rating: payload.rating ?? undefined,
+      verifiedBy: undefined,
     };
     await db.stores.add(loc);
     return loc;
