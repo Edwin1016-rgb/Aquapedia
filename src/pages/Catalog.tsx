@@ -1,9 +1,113 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Fish } from '../types';
 import { fetchFishList } from '../services/fishService';
 import FishCard from '../components/cards/FishCard';
 import Input from '../components/ui/Input';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
+import { useCollectionStore } from '../store/collectionStore';
+
+function useIsMobile(breakpoint = 768) {
+  const [mobile, setMobile] = useState(window.innerWidth < breakpoint);
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [breakpoint]);
+  return mobile;
+}
+
+function SwipeCard({ fish, onLike, onPass, onInfo }: {
+  fish: Fish;
+  onLike: () => void;
+  onPass: () => void;
+  onInfo: () => void;
+}) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    setIsDragging(true);
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const dx = e.touches[0].clientX - startX.current;
+    setOffsetX(dx);
+    setRotation(dx * 0.1);
+  }, [isDragging]);
+
+  const onTouchEnd = useCallback(() => {
+    setIsDragging(false);
+    if (offsetX > 100) {
+      onLike();
+    } else if (offsetX < -100) {
+      onPass();
+    }
+    setOffsetX(0);
+    setRotation(0);
+  }, [offsetX, onLike, onPass]);
+
+  const opacity = Math.max(0, 1 - Math.abs(offsetX) / 400);
+
+  return (
+    <div
+      className="relative w-full max-w-sm mx-auto select-none"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div
+        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-200"
+        style={{
+          transform: `translateX(${offsetX}px) rotate(${rotation}deg)`,
+          opacity,
+        }}
+      >
+        <div className="h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+          {fish.imageUrl ? (
+            <img src={fish.imageUrl} alt={fish.commonName} className="object-cover w-full h-full" />
+          ) : (
+            <div className="text-gray-400">Sin imagen</div>
+          )}
+        </div>
+        <div className="p-4">
+          <h2 className="text-xl font-bold">{fish.commonName}</h2>
+          <p className="text-sm text-gray-500 italic">{fish.scientificName}</p>
+          <div className="mt-2 flex gap-2 flex-wrap">
+            <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800">{fish.diet}</span>
+            <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800">{fish.temperament}</span>
+            <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800">{fish.family}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center gap-6 mt-4">
+        <button
+          onClick={onPass}
+          className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900 text-red-600 flex items-center justify-center text-2xl shadow-md"
+        >
+          ✕
+        </button>
+        <button
+          onClick={onInfo}
+          className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 flex items-center justify-center text-2xl shadow-md"
+        >
+          ℹ
+        </button>
+        <button
+          onClick={onLike}
+          className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900 text-green-600 flex items-center justify-center text-2xl shadow-md"
+        >
+          ♥
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Catalog() {
   const [query, setQuery] = useState('');
@@ -13,7 +117,11 @@ export default function Catalog() {
   const [loading, setLoading] = useState(true);
   const [fish, setFish] = useState<Fish[]>([]);
   const [visibleCount, setVisibleCount] = useState(24);
+  const [swipeIndex, setSwipeIndex] = useState(0);
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const addToCollection = useCollectionStore((s) => s.add);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query), 300);
@@ -38,16 +146,78 @@ export default function Catalog() {
         if (rarityFilter !== 'all') filtered = filtered.filter((f) => f.rarity === rarityFilter);
         if (dietFilter !== 'all') filtered = filtered.filter((f) => f.diet === dietFilter);
         setFish(filtered);
+        setSwipeIndex(0);
       })
-      .catch(() => {
-        // fallbacks handled in service
-      })
+      .catch(() => {})
       .finally(() => mounted && setLoading(false));
 
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false };
   }, [debouncedQuery, rarityFilter, dietFilter]);
+
+  const handleLike = useCallback(async (f: Fish) => {
+    if (user) {
+      try {
+        await addToCollection(user.id, f.id);
+      } catch { /* fallback offline */ }
+    }
+    setSwipeIndex((i) => i + 1);
+  }, [user, addToCollection]);
+
+  const handlePass = useCallback(() => {
+    setSwipeIndex((i) => i + 1);
+  }, []);
+
+  if (isMobile) {
+    return (
+      <main className="p-4">
+        <header className="max-w-4xl mx-auto mb-4">
+          <h1 className="text-2xl font-bold mb-3">Catálogo</h1>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div className="sm:col-span-2">
+              <Input value={query} onChange={setQuery} placeholder="Buscar por nombre común o científico" />
+            </div>
+            <div className="flex gap-2">
+              <select value={rarityFilter} onChange={(e) => setRarityFilter(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-md w-full dark:bg-slate-800 dark:border-slate-600">
+                <option value="all">Todas</option>
+                <option value="comun">Común</option>
+                <option value="poco_comun">Poco común</option>
+                <option value="raro">Raro</option>
+                <option value="epico">Épico</option>
+              </select>
+              <select value={dietFilter} onChange={(e) => setDietFilter(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-md w-full dark:bg-slate-800 dark:border-slate-600">
+                <option value="all">Todos</option>
+                <option value="omnivoro">Omnívoro</option>
+                <option value="carnivoro">Carnívoro</option>
+                <option value="herbivoro">Herbívoro</option>
+              </select>
+            </div>
+          </div>
+        </header>
+
+        <section className="max-w-6xl mx-auto">
+          {loading ? (
+            <div className="animate-pulse bg-white dark:bg-slate-800 rounded-xl h-96 max-w-sm mx-auto" />
+          ) : fish.length === 0 ? (
+            <div className="text-center text-gray-500 mt-8">No se encontraron especies.</div>
+          ) : swipeIndex >= fish.length ? (
+            <div className="text-center text-gray-500 mt-16">
+              <p className="text-lg">¡Viste todas las especies!</p>
+              <button onClick={() => setSwipeIndex(0)} className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded">
+                Ver de nuevo
+              </button>
+            </div>
+          ) : (
+            <SwipeCard
+              fish={fish[swipeIndex]}
+              onLike={() => handleLike(fish[swipeIndex])}
+              onPass={handlePass}
+              onInfo={() => navigate(`/fish/${fish[swipeIndex].id}`)}
+            />
+          )}
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="p-4">
@@ -62,8 +232,8 @@ export default function Catalog() {
           <div className="flex gap-2">
             <select
               value={rarityFilter}
-              onChange={(e) => setRarityFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-200 rounded-md w-full"
+              onChange={(e) => setRarityFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-md w-full dark:bg-slate-800 dark:border-slate-600"
             >
               <option value="all">Todas las rarezas</option>
               <option value="comun">Común</option>
@@ -74,8 +244,8 @@ export default function Catalog() {
 
             <select
               value={dietFilter}
-              onChange={(e) => setDietFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-200 rounded-md w-full"
+              onChange={(e) => setDietFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-md w-full dark:bg-slate-800 dark:border-slate-600"
             >
               <option value="all">Todos los dietas</option>
               <option value="omnivoro">Omnívoro</option>
@@ -90,7 +260,7 @@ export default function Catalog() {
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="animate-pulse bg-white rounded-lg h-56" />
+              <div key={i} className="animate-pulse bg-white dark:bg-slate-800 rounded-lg h-56" />
             ))}
           </div>
         ) : fish.length === 0 ? (
