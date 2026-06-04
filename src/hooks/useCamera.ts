@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-import { uploadImage } from '../services/storageService';
 
 export function useCamera() {
   const open = useCallback((): Promise<File | null> => {
@@ -7,11 +6,8 @@ export function useCamera() {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      // capture is not in TS lib types for HTMLInputElement
       try {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        input.capture = 'environment';
+        (input as any).capture = 'environment';
       } catch {}
 
       input.style.display = 'none';
@@ -26,9 +22,5 @@ export function useCamera() {
     });
   }, []);
 
-  const upload = useCallback(async (userId: string, file: File) => {
-    return uploadImage(userId, file);
-  }, []);
-
-  return { open, upload } as const;
+  return { open };
 }

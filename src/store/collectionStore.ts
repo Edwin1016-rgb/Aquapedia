@@ -5,7 +5,7 @@ import * as collectionService from '../services/collectionService';
 type State = {
   items: CollectionCard[];
   load: (userId: string) => Promise<void>;
-  add: (userId: string, fishId: string, userPhoto?: string, notes?: string) => Promise<void>;
+  add: (userId: string, fishId: string, userPhoto?: string, notes?: string) => Promise<CollectionCard>;
   remove: (cardId: string) => Promise<void>;
   toggleFavorite: (cardId: string, fav: boolean) => Promise<void>;
   updatePhoto: (cardId: string, photoUrl: string) => Promise<void>;
@@ -20,6 +20,7 @@ export const useCollectionStore = create<State>((set, get) => ({
   add: async (userId: string, fishId: string, userPhoto?: string, notes?: string) => {
     const card = await collectionService.addToCollection(userId, fishId, userPhoto, notes);
     set({ items: [card, ...get().items] });
+    return card;
   },
   remove: async (cardId: string) => {
     await collectionService.removeFromCollection(cardId);

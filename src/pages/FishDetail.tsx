@@ -6,6 +6,7 @@ import { useCamera } from '../hooks/useCamera';
 import { useAuthStore } from '../store/authStore';
 import { useCollectionStore } from '../store/collectionStore';
 import { showToast } from '../store/uiStore';
+import { saveCardPhoto } from '../services/cardPhotoService';
 import { rarityClass } from '../utils/rarity';
 
 const rarityLabels: Record<string, string> = {
@@ -170,19 +171,19 @@ export default function FishDetail() {
                   if (!file) return;
                   setUploading(true);
                   try {
-                    const url = await camera.upload(user.id, file);
+                    const card = await addToCollection(user.id, fish.id);
+                    const url = await saveCardPhoto(card.id, file);
                     setSelectedPhoto(url);
-                    await addToCollection(user.id, fish.id, url);
                     showToast('success', 'Foto agregada a tu colección');
                   } catch {
-                    showToast('error', 'No se pudo subir la foto');
+                    showToast('error', 'No se pudo agregar la foto');
                   } finally {
                     setUploading(false);
                   }
                 }}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm disabled:opacity-50"
               >
-                <i className="fa-solid fa-camera"></i> {uploading ? 'Subiendo...' : 'Subir foto'}
+                <i className="fa-solid fa-camera"></i> {uploading ? 'Guardando...' : 'Subir foto'}
               </button>
             )}
             {message && <span className="text-sm text-gray-700 dark:text-gray-300 ml-2">{message}</span>}

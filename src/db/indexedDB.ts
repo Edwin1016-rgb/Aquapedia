@@ -1,19 +1,27 @@
 import Dexie, { type Table } from 'dexie';
 import type { Fish, CollectionCard, AquaStore } from '../types';
 
+export interface CardPhoto {
+  cardId: string;
+  blob: Blob;
+  createdAt: string;
+}
+
 export class AquaPediaDB extends Dexie {
   fish!: Table<Fish>;
   collection!: Table<CollectionCard>;
   stores!: Table<AquaStore>;
   syncQueue!: Table<{ id?: number; type: string; payload: unknown; createdAt: string }>;
+  cardPhotos!: Table<CardPhoto>;
 
   constructor() {
     super('AquaPediaDB');
-    this.version(1).stores({
+    this.version(2).stores({
       fish: '&id, commonName, scientificName, family, rarity, diet, temperament',
       collection: '&id, userId, fishId, addedAt, isFavorite',
       stores: '&id, name, type, lat, lng',
       syncQueue: '++id, type, createdAt',
+      cardPhotos: '&cardId, createdAt',
     });
   }
 }
