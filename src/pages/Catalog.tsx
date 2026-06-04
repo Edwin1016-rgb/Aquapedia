@@ -242,7 +242,7 @@ export default function Catalog() {
               onChange={(e) => setRarityFilter(e.target.value)}
               className="px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-md w-full dark:bg-slate-800 text-gray-900 dark:text-gray-100"
             >
-              <option value="all">Todas las rarezas</option>
+              <option value="all">Rarezas</option>
               <option value="comun">Común</option>
               <option value="poco_comun">Poco común</option>
               <option value="raro">Raro</option>
@@ -254,7 +254,7 @@ export default function Catalog() {
               onChange={(e) => setDietFilter(e.target.value)}
               className="px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-md w-full dark:bg-slate-800 text-gray-900 dark:text-gray-100"
             >
-              <option value="all">Todos los dietas</option>
+              <option value="all">Dietas</option>
               <option value="omnivoro">Omnívoro</option>
               <option value="carnivoro">Carnívoro</option>
               <option value="herbivoro">Herbívoro</option>

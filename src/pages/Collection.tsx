@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCollectionStore } from '../store/collectionStore';
+import type { Fish } from '../types';
 import FishCard from '../components/cards/FishCard';
 import { useCamera } from '../hooks/useCamera';
 import { showToast } from '../store/uiStore';
 
 export default function Collection() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const load = useCollectionStore((s) => s.load);
   const items = useCollectionStore((s) => s.items);
@@ -70,15 +73,23 @@ export default function Collection() {
         <div className="text-gray-500 dark:text-gray-400">No tienes cartas en tu colección.</div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {items.map((c) => (
-            <div key={c.id} className="relative">
-              <FishCard fish={{ id: c.fishId, commonName: c.fish?.commonName ?? 'Pez', scientificName: c.fish?.scientificName ?? '', family: '', description: '', imageUrl: c.userPhoto ?? c.fish?.imageUrl ?? '', communityPhotos: [], tempMin: 0, tempMax: 0, phMin: 0, phMax: 0, hardnessMin: 0, hardnessMax: 0, sizeAdultCm: 0, lifespan: '', diet: 'omnivoro', temperament: 'pacifico', tankLevelMin: 0, difficultyLevel: 1, rarity: 'comun', compatibleWith: [], incompatibleWith: [], careNotes: '', tags: [], createdAt: '', updatedAt: '' }} />
-              <div className="mt-2 flex gap-2">
-                <button onClick={() => toggleFavorite(c.id, !c.isFavorite)} className="px-2 py-1 border border-gray-200 dark:border-slate-600 rounded-md text-gray-700 dark:text-gray-300">{c.isFavorite ? '★' : '☆'}</button>
-                <button onClick={() => remove(c.id)} className="px-2 py-1 border border-gray-200 dark:border-slate-600 rounded-md text-gray-700 dark:text-gray-300">Eliminar</button>
+          {items.map((c) => {
+            const f = c.fish;
+            const fishData = f ?? { id: c.fishId, commonName: 'Pez', scientificName: '', family: '', description: '', imageUrl: c.userPhoto ?? '', communityPhotos: [], tempMin: 0, tempMax: 0, phMin: 0, phMax: 0, hardnessMin: 0, hardnessMax: 0, sizeAdultCm: 0, lifespan: '', diet: 'omnivoro', temperament: 'pacifico', tankLevelMin: 0, difficultyLevel: 1, rarity: 'comun', compatibleWith: [], incompatibleWith: [], careNotes: '', tags: [], createdAt: '', updatedAt: '' } as Fish;
+            return (
+              <div key={c.id} className="relative">
+                <div onClick={() => navigate(`/fish/${c.fishId}`)}>
+                  <FishCard fish={fishData} />
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(c.id, !c.isFavorite); }} className={`px-2 py-1 border border-gray-200 dark:border-slate-600 rounded-md ${c.isFavorite ? 'text-amber-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <i className={`fa-solid ${c.isFavorite ? 'fa-star' : 'fa-regular fa-star'}`}></i>
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); remove(c.id); }} className="px-2 py-1 border border-gray-200 dark:border-slate-600 rounded-md text-red-600 dark:text-red-400"><i className="fa-solid fa-trash-can"></i></button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </main>
