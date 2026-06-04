@@ -154,6 +154,25 @@ export async function toggleFavorite(cardId: string, favorite: boolean) {
   }
 }
 
+export async function updateCardPhoto(cardId: string, photoUrl: string) {
+  try {
+    const { error } = await supabase.from('collection_cards').update({ user_photo: photoUrl }).eq('id', cardId);
+    if (error) throw error;
+    const card = await db.collection.get(cardId);
+    if (card) {
+      await db.collection.put({ ...card, userPhoto: photoUrl });
+    }
+    return true;
+  } catch (err) {
+    const card = await db.collection.get(cardId);
+    if (card) {
+      await db.collection.put({ ...card, userPhoto: photoUrl });
+    }
+    await addToSyncQueue('update_collection', { id: cardId, userPhoto: photoUrl });
+    return false;
+  }
+}
+
 async function checkAndNotifyCompatibility(userId: string, newFishId: string, newFish: Fish | undefined) {
   if (!newFish) return;
   try {

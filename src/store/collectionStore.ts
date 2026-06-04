@@ -8,6 +8,7 @@ type State = {
   add: (userId: string, fishId: string, userPhoto?: string, notes?: string) => Promise<void>;
   remove: (cardId: string) => Promise<void>;
   toggleFavorite: (cardId: string, fav: boolean) => Promise<void>;
+  updatePhoto: (cardId: string, photoUrl: string) => Promise<void>;
 };
 
 export const useCollectionStore = create<State>((set, get) => ({
@@ -27,5 +28,9 @@ export const useCollectionStore = create<State>((set, get) => ({
   toggleFavorite: async (cardId: string, fav: boolean) => {
     await collectionService.toggleFavorite(cardId, fav);
     set({ items: get().items.map((i) => (i.id === cardId ? { ...i, isFavorite: fav } : i)) });
+  },
+  updatePhoto: async (cardId: string, photoUrl: string) => {
+    await collectionService.updateCardPhoto(cardId, photoUrl);
+    set({ items: get().items.map((i) => (i.id === cardId ? { ...i, userPhoto: photoUrl } : i)) });
   },
 }));
