@@ -1,4 +1,5 @@
-import webpush from 'web-push';
+import type { PushSub } from '../../utils/webpush';
+import { sendWebPushAll } from '../../utils/webpush';
 
 interface Env {
   SUPABASE_URL: string;
@@ -7,27 +8,12 @@ interface Env {
   VAPID_PRIVATE_KEY: string;
 }
 
-interface SubscriptionRow {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-}
-
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   try {
-    const { title, body, icon, url } = (await request.json()) as {
-      title?: string;
-      body?: string;
-      icon?: string;
-      url?: string;
+    const { title, body, icon } = (await request.json()) as {
+      title?: string; body?: string; icon?: string;
     };
     if (!title) return new Response('Missing title', { status: 400 });
-
-    webpush.setVapidDetails(
-      'mailto:notifications@aquapedia.app',
-      env.VAPID_PUBLIC_KEY,
-      env.VAPID_PRIVATE_KEY,
-    );
 
     const res = await fetch(
       `${env.SUPABASE_URL}/rest/v1/push_subscriptions?select=endpoint,p256dh,auth`,
@@ -40,27 +26,22 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     );
     if (!res.ok) return new Response('Failed to fetch subscriptions', { status: 500 });
 
-    const subs: SubscriptionRow[] = await res.json();
+    const subs: PushSub[] = await res.json();
     if (subs.length === 0) return new Response('No subscriptions', { status: 200 });
 
     const payload = JSON.stringify({
       title,
       body: body ?? '',
       icon: icon ?? '/icons/icon-192.png',
-      data: url ? { url } : undefined,
     });
 
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload,
-        ),
-      ),
-    );
+    const result = await sendWebPushAll(subs, payload, {
+      publicKey: env.VAPID_PUBLIC_KEY,
+      privateKey: env.VAPID_PRIVATE_KEY,
+      subject: 'mailto:notifications@aquapedia.app',
+    });
 
-    const sent = results.filter((r) => r.status === 'fulfilled').length;
-    return new Response(JSON.stringify({ sent, total: subs.length }), {
+    return new Response(JSON.stringify(result), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
