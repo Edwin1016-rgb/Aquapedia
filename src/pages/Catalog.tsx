@@ -6,6 +6,7 @@ import Input from '../components/ui/Input';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useCollectionStore } from '../store/collectionStore';
+import { rarityClass } from '../utils/rarity';
 
 function useIsMobile(breakpoint = 768) {
   const [mobile, setMobile] = useState(window.innerWidth < breakpoint);
@@ -27,6 +28,7 @@ function SwipeCard({ fish, onLike, onPass, onInfo }: {
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startX = useRef(0);
+  const rarity = rarityClass(fish.rarity);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
@@ -61,12 +63,13 @@ function SwipeCard({ fish, onLike, onPass, onInfo }: {
       onTouchEnd={onTouchEnd}
     >
       <div
-        className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-200"
+        className={`bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-transform duration-200 border-l-4 ${rarity.border}`}
         style={{
           transform: `translateX(${offsetX}px) rotate(${rotation}deg)`,
           opacity,
         }}
       >
+        <div className={`h-2 ${rarity.accent}`} />
         <div className="h-64 bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
           {fish.imageUrl ? (
             <img src={fish.imageUrl} alt={fish.commonName} className="object-cover w-full h-full" />
@@ -75,7 +78,10 @@ function SwipeCard({ fish, onLike, onPass, onInfo }: {
           )}
         </div>
         <div className="p-4">
-          <h2 className="text-xl font-bold">{fish.commonName}</h2>
+          <div className="flex items-center justify-between">
+            <h2 className={`text-xl font-bold ${rarity.epic ? 'rarity-epic' : ''}`}>{fish.commonName}</h2>
+            <span className={`px-2 py-0.5 text-xs rounded-full ${rarity.bg} ${rarity.text} shrink-0`}>{rarity.label}</span>
+          </div>
           <p className="text-sm text-gray-500 italic">{fish.scientificName}</p>
           <div className="mt-2 flex gap-2 flex-wrap">
             <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800">{fish.diet}</span>

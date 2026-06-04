@@ -13,9 +13,10 @@ export default function FishCard({ fish, onClick }: Props) {
     <article
       role="button"
       onClick={onClick}
-      className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow w-64"
+      className={`bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all border-l-4 ${rarity.border} w-full`}
     >
-      <div className="h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
+      <div className={`h-2 ${rarity.accent}`} />
+      <div className="h-36 bg-gray-100 flex items-center justify-center overflow-hidden">
         {fish.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={fish.imageUrl} alt={fish.commonName} loading="lazy" decoding="async" className="object-cover w-full h-full" />
@@ -26,38 +27,17 @@ export default function FishCard({ fish, onClick }: Props) {
 
       <div className="p-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{fish.commonName}</h3>
-          <span
-            className={`ml-2 px-2 py-0.5 text-xs rounded-full ${rarity.bg} ${rarity.text} ${
-              (rarity as any).epic ? 'rarity-epic' : ''
-            }`}
-          >
+          <h3 className={`text-base font-semibold ${rarity.epic ? 'rarity-epic' : ''}`}>{fish.commonName}</h3>
+          <span className={`ml-2 px-2 py-0.5 text-xs rounded-full ${rarity.bg} ${rarity.text} shrink-0`}>
             {rarity.label}
           </span>
         </div>
 
-        <p className="text-sm text-gray-500 mt-1">{fish.scientificName}</p>
+        <p className="text-xs text-gray-500 mt-1 italic truncate">{fish.scientificName}</p>
 
-        <div className="mt-3 space-y-2">
-          <div>
-            <div className="text-xs text-gray-500">Temperatura (°C)</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="h-2 rounded-full bg-emerald-500"
-                style={{ width: `${Math.min(100, ((fish.tempMax - fish.tempMin) / 20) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="text-xs text-gray-500">pH</div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="h-2 rounded-full bg-blue-500"
-                style={{ width: `${Math.min(100, ((fish.phMax - fish.phMin) / 14) * 100)}%` }}
-              />
-            </div>
-          </div>
+        <div className="mt-2 flex gap-1 flex-wrap">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{fish.diet}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">{fish.temperament}</span>
         </div>
       </div>
     </article>
