@@ -59,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ env }) => {
         webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify({
-            title: '🐟 Pez del día',
+            title: 'Pez del día',
             body: `Hoy te presentamos a ${fish.common_name}`,
             icon: fish.image_url || '/icons/icon-192.png',
             data: { url: `/fish/${fish.id}`, type: 'pez_del_dia' },
