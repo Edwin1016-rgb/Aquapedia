@@ -89,7 +89,30 @@ Deploy (Cloudflare Pages):
 
 - Build command: `npm run build`
 - Publish directory: `dist`
-- Add environment variables in the Pages UI: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY`.
+- Add environment variables in the Pages UI:
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY`
+  - `VITE_VAPID_PUBLIC_KEY`
+  - `SUPABASE_URL` (server-side, same value)
+  - `SUPABASE_SERVICE_ROLE_KEY` (server-side, from Supabase Dashboard → Settings → API → service_role)
+  - `VAPID_PUBLIC_KEY` (server-side, same as `VITE_VAPID_PUBLIC_KEY`)
+  - `VAPID_PRIVATE_KEY` (server-side, from Supabase Dashboard → Settings → API → Push Notifications)
+- Enable `nodejs_compat` compatibility flag in Pages Settings → Functions → Compatibility flags.
 - Ensure `public/_redirects` exists with `/* /index.html 200` for SPA routing.
+
+Notifications flow:
+1. User enables notifications in Profile → browser prompts for permission → subscription saved to Supabase.
+2. To send a notification from the frontend, call `sendNotification({ userId, title, body })` from `notificationService.ts`.
+3. To broadcast to all users: `notifyAll({ title, body })` → calls `POST /api/notify/all`.
+4. Daily fish at 9am: set up a cron job (cron-job.org or similar) to hit `POST /api/notify/daily` with empty body.
+   - The function picks a random fish from the DB and sends it to all subscribed users.
+
+Notification types implemented:
+| Tipo | Disparador | Origen |
+|---|---|---|
+| 🐟 Pez del día | Cron externo a las 9am → `POST /api/notify/daily` | Server |
+| 🆕 Nueva especie | Llamar `notifyAll(...)` desde el backend | Server |
+| ⚠️ Alerta compatibilidad | Al añadir pez incompatible en colección | Frontend (collectionService) |
+| 🏆 Logro desbloqueado | Al obtener badge | Frontend (achievementsService) |
 
 See `supabase/seed_full.sql` for the included 50-species seed.

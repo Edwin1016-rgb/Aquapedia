@@ -26,6 +26,12 @@ export function usePushNotifications() {
     }
 
     const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY as string;
+    if (!vapidKey || vapidKey === 'tu-vapid-public-key') {
+      throw new Error('Falta VITE_VAPID_PUBLIC_KEY en .env.local');
+    }
+    if (!vapidKey.startsWith('B')) {
+      throw new Error('La clave VAPID no es válida. Genera una nueva en Supabase → Settings → API → Push Notifications');
+    }
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(vapidKey),
@@ -37,7 +43,10 @@ export function usePushNotifications() {
 
   const unregister = useCallback(async (endpoint: string) => {
     try {
-      const reg = await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller) {
+      throw new Error('Service Worker no está activo. Usa npm run preview para probar notificaciones en local.');
+    }
+    const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub && sub.endpoint === endpoint) await sub.unsubscribe();
     } catch {}

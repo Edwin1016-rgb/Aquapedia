@@ -3,6 +3,7 @@ import type { CollectionCard, Fish } from '../types';
 import { useAchievementsStore } from '../store/achievementsStore';
 import { showToast } from '../store/uiStore';
 import { supabase } from './supabase';
+import { sendNotification } from './notificationService';
 
 const BADGES = {
   starter: { id: 'starter', name: 'Primer pez', description: 'Has añadido tu primera carta.' },
@@ -20,12 +21,14 @@ export async function evaluateAchievementsForUser(userId: string, addedCard: Col
       unlock(BADGES.starter);
       showToast('success', `Logro desbloqueado: ${BADGES.starter.name}`);
       await persistBadgeToProfile(userId, BADGES.starter);
+      sendNotification({ userId, title: `🏆 ${BADGES.starter.name}`, body: BADGES.starter.description }).catch(() => {});
     }
 
     if (count === 10) {
       unlock(BADGES.collector_10);
       showToast('success', `Logro desbloqueado: ${BADGES.collector_10.name}`);
       await persistBadgeToProfile(userId, BADGES.collector_10);
+      sendNotification({ userId, title: `🏆 ${BADGES.collector_10.name}`, body: BADGES.collector_10.description }).catch(() => {});
     }
 
     // check if the added card corresponds to an epic fish
@@ -35,6 +38,7 @@ export async function evaluateAchievementsForUser(userId: string, addedCard: Col
         unlock(BADGES.epic_hunter);
         showToast('success', `Logro desbloqueado: ${BADGES.epic_hunter.name}`);
         await persistBadgeToProfile(userId, BADGES.epic_hunter);
+        sendNotification({ userId, title: `🏆 ${BADGES.epic_hunter.name}`, body: BADGES.epic_hunter.description }).catch(() => {});
       }
     }
   } catch (err) {

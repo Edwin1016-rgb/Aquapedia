@@ -56,7 +56,7 @@ export default defineConfig({
             options: { cacheName: 'supabase', networkTimeoutSeconds: 5 },
           },
         ],
-        navigateFallback: '/',
+        navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/],
       },
     }),
