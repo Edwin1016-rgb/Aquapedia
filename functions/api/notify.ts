@@ -2,10 +2,10 @@ import type { PushSub } from '../utils/webpush';
 import { sendWebPush } from '../utils/webpush';
 
 interface Env {
-  SUPABASE_URL: string;
-  SUPABASE_SERVICE_ROLE_KEY: string;
-  VAPID_PUBLIC_KEY: string;
-  VAPID_PRIVATE_KEY: string;
+  SUPABASE_URL?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_KEY?: string;
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {

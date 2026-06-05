@@ -4,9 +4,10 @@ import { rarityClass } from '../../utils/rarity';
 type Props = {
   fish: Fish;
   onClick?: () => void;
+  userPhotoUrl?: string;
 };
 
-export default function FishCard({ fish, onClick }: Props) {
+export default function FishCard({ fish, onClick, userPhotoUrl }: Props) {
   const rarity = rarityClass(fish.rarity);
 
   return (
@@ -16,12 +17,16 @@ export default function FishCard({ fish, onClick }: Props) {
       className={`bg-white dark:bg-slate-800 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-all border-l-4 ${rarity.border} w-full`}
     >
       <div className={`h-2 ${rarity.accent}`} />
-      <div className="h-36 bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden">
+      <div className="h-36 bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden relative">
         {fish.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={fish.imageUrl} alt={fish.commonName} loading="lazy" decoding="async" className="object-cover w-full h-full" />
         ) : (
           <div className="text-gray-400 dark:text-gray-500">Sin imagen</div>
+        )}
+        {userPhotoUrl && (
+          <div className="absolute top-1 right-1 w-10 h-10 rounded-full border-2 border-white dark:border-slate-800 shadow-md overflow-hidden bg-gray-200 dark:bg-slate-700" title="Tu foto">
+            <img src={userPhotoUrl} alt="Mi foto" className="object-cover w-full h-full" />
+          </div>
         )}
       </div>
 

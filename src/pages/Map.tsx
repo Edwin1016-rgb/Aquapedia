@@ -1,6 +1,6 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import { fetchStores, suggestStore } from '../services/storeService';
 import useGeolocation from '../hooks/useGeolocation';
@@ -32,18 +32,28 @@ const osmIcon = L.divIcon({
 
 const DEFAULT_CENTER = { lat: 4.5709, lng: -74.2973 };
 
-function MapCenterUpdater({ position }: { position: { lat: number; lng: number } | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (position) {
-      map.flyTo([position.lat, position.lng], 13, { duration: 1.5 });
-    }
-  }, [map, position]);
-  return null;
-}
-
 interface StoreWithSource extends AquaStore {
   source?: string;
+}
+
+function MapController({ center, onMapMoved }: { center: { lat: number; lng: number } | null; onMapMoved: (c: { lat: number; lng: number }) => void }) {
+  const map = useMap();
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (center && !initRef.current) {
+      map.setView([center.lat, center.lng], 13);
+      initRef.current = true;
+    }
+  }, [center, map]);
+  useEffect(() => {
+    const handler = () => {
+      const c = map.getCenter();
+      onMapMoved({ lat: c.lat, lng: c.lng });
+    };
+    map.on('moveend', handler);
+    return () => { map.off('moveend', handler); };
+  }, [map, onMapMoved]);
+  return null;
 }
 
 export default function MapPage() {
@@ -51,61 +61,73 @@ export default function MapPage() {
   const { position } = useGeolocation(geoOptions);
   const [stores, setStores] = useState<StoreWithSource[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setSearching(true);
-      try {
-        const lat = position?.lat ?? DEFAULT_CENTER.lat;
-        const lng = position?.lng ?? DEFAULT_CENTER.lng;
-        const res = await fetch(`/api/stores/nearby?lat=${lat}&lng=${lng}&radius=10000`);
-        if (res.ok) {
-          const data = await res.json();
-          if (mounted) setStores(data.stores);
-        } else {
-          const db = await fetchStores();
-          if (mounted) setStores(db.map(s => ({ ...s, source: 'db' })));
-        }
-      } catch {
-        const db = await fetchStores();
-        if (mounted) setStores(db.map(s => ({ ...s, source: 'db' })));
-      } finally {
-        if (mounted) setSearching(false);
-      }
-    }
-    load();
-  }, [position]);
-
-  async function fetchNearbyStores(lat: number, lng: number) {
-    const apiUrl = `/api/stores/nearby?lat=${lat}&lng=${lng}&radius=10000`;
+  async function loadStores(lat: number, lng: number) {
+    setSearching(true);
     try {
-      const res = await fetch(apiUrl);
+      const res = await fetch(`/api/stores/nearby?lat=${lat}&lng=${lng}&radius=10000`);
       if (res.ok) {
         const data = await res.json();
-        if (data.stores?.length) return data.stores;
+        setStores(data.stores ?? []);
+      } else {
+        const db = await fetchStores();
+        setStores(db.map(s => ({ ...s, source: 'db' })));
       }
-    } catch {}
-    const db = await fetchStores();
-    return db.map(s => ({ ...s, source: 'db' }));
+    } catch {
+      const db = await fetchStores();
+      setStores(db.map(s => ({ ...s, source: 'db' })));
+    } finally {
+      setSearching(false);
+    }
   }
 
   useEffect(() => {
-    let mounted = true;
-    async function load() {
-      setSearching(true);
-      const lat = position?.lat ?? DEFAULT_CENTER.lat;
-      const lng = position?.lng ?? DEFAULT_CENTER.lng;
-      const result = await fetchNearbyStores(lat, lng);
-      if (mounted) setStores(result);
-      if (mounted) setSearching(false);
-    }
-    load();
+    if (!position) return;
+    loadStores(position.lat, position.lng);
   }, [position]);
 
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const geo = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&countrycodes=co`
+      );
+      const geoData = await geo.json();
+      if (geoData.length > 0) {
+        const c = { lat: parseFloat(geoData[0].lat), lng: parseFloat(geoData[0].lon) };
+        setMapCenter(c);
+        await loadStores(c.lat, c.lng);
+      } else {
+        setSearching(false);
+      }
+    } catch {
+      setSearching(false);
+    }
+  }
+
   return (
-    <div className="h-[70vh] w-full relative overflow-hidden" style={{ isolation: 'isolate' }}>
-      <div className="absolute inset-0">
+    <div className="p-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Mapa de tiendas</h1>
+
+      <form onSubmit={handleSearch} className="mb-3 flex gap-2">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Buscar ciudad (ej. Tunja, Medellín...)"
+          className="flex-1 px-3 py-2 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 text-sm"
+        />
+        <button type="submit" disabled={searching} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm disabled:opacity-50">
+          {searching ? <i className="fa-solid fa-spinner fa-spin"></i> : <i className="fa-solid fa-search"></i>}
+        </button>
+      </form>
+
+    <div className="h-[65vh] w-full relative overflow-hidden rounded-xl" style={{ isolation: 'isolate' }}>
+      <div className="absolute inset-0 rounded-xl overflow-hidden">
         <MapContainer
           center={[DEFAULT_CENTER.lat, DEFAULT_CENTER.lng]}
           zoom={5}
@@ -115,7 +137,7 @@ export default function MapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapCenterUpdater position={position} />
+          <MapController center={mapCenter ?? position} onMapMoved={(c) => setMapCenter(c)} />
 
           {position && (
             <Marker position={[position.lat, position.lng]}>
@@ -212,6 +234,7 @@ export default function MapPage() {
           </details>
         </div>
       </div>
+    </div>
     </div>
   );
 }
