@@ -2,6 +2,7 @@ import { db } from '../db/indexedDB';
 import type { CollectionCard, Fish } from '../types';
 import { useAchievementsStore } from '../store/achievementsStore';
 import { showToast } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
 import { supabase } from './supabase';
 import { sendNotification } from './notificationService';
 
@@ -52,10 +53,11 @@ export default { evaluateAchievementsForUser };
 
 async function persistBadgeToProfile(userId: string, badge: { id: string; name: string; description: string }) {
   try {
-    // fetch existing badges from profile
+    const userEmail = useAuthStore.getState().user?.email;
+    const username = userEmail ? userEmail.split('@')[0] : 'usuario';
+
     const { data, error } = await supabase.from('profiles').select('badges').eq('id', userId).single();
     if (error && (error as any).code !== 'PGRST116') {
-      // if other error, log and return
       console.error('fetch profile badges error', error);
     }
 
@@ -66,10 +68,12 @@ async function persistBadgeToProfile(userId: string, badge: { id: string; name: 
     const newBadge = { ...badge, unlockedAt: new Date().toISOString() };
     const updated = [...existing, newBadge];
 
-    const { error: upsertErr } = await supabase.from('profiles').upsert({ id: userId, badges: updated }, { onConflict: 'id' });
+    const { error: upsertErr } = await supabase.from('profiles').upsert(
+      { id: userId, username, badges: updated },
+      { onConflict: 'id' },
+    );
     if (upsertErr) console.error('upsert profile badges error', upsertErr);
   } catch (err) {
-    // ignore failures
     // eslint-disable-next-line no-console
     console.error('persistBadgeToProfile', err);
   }

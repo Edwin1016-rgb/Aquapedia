@@ -93,15 +93,29 @@ export default function Profile() {
           {badges.length === 0 ? (
             <div className="col-span-full text-sm text-gray-500 dark:text-gray-400">Aún no tienes insignias. Añade cartas para desbloquear logros.</div>
           ) : (
-            badges.map((b) => (
-              <div key={b.id} className="p-3 bg-white dark:bg-slate-800 rounded shadow flex items-center space-x-3">
-                <img src={b.iconUrl ?? '/icons/icon-96.png'} alt={b.name} className="w-10 h-10" />
-                <div>
-                  <div className="font-medium text-gray-900 dark:text-white">{b.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{b.unlockedAt ? new Date(b.unlockedAt).toLocaleDateString() : ''}</div>
+            badges.map((b) => {
+              const iconMap: Record<string, string> = {
+                starter: 'fa-fish',
+                collector_10: 'fa-layer-group',
+                epic_hunter: 'fa-crown',
+              };
+              const colorMap: Record<string, string> = {
+                starter: 'text-emerald-500',
+                collector_10: 'text-blue-500',
+                epic_hunter: 'text-amber-500',
+              };
+              return (
+                <div key={b.id} className="p-3 bg-white dark:bg-slate-800 rounded shadow flex items-center space-x-3">
+                  <div className={`w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-xl ${colorMap[b.id] ?? 'text-gray-500'}`}>
+                    <i className={`fa-solid ${iconMap[b.id] ?? 'fa-award'}`}></i>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-900 dark:text-white">{b.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{b.unlockedAt ? new Date(b.unlockedAt).toLocaleDateString() : ''}</div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>
